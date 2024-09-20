@@ -13,7 +13,7 @@ Level file is assumed to in `assets/levels/`. For example:
 cargo run --release -- -m test.tmx
 ```
 
-You can used the [Tiled](https://www.mapeditor.org/) map editor to edit the existing levels or create your own. You must use the `assets/tilesets/tilemap16x.tsx` tileset.
+You can used the [Tiled](https://www.mapeditor.org/) map editor to edit the existing levels or create your own. You must use the `assets/tilesets/tileset16x.tsx` tileset.
 
 ### Controls
 ###### Keyboard
