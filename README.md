@@ -25,7 +25,7 @@ C           -  show/hide game config
 X           -  show/hide bevy world inspector
 V           -  toggle V-sync
 N           -  toggle noclip
-R           -  reset level;
+R           -  reset level
 Plus        -  zoom camera in
 Minus       -  zoom camera out
 LControl    -  hold to zoom camera faster
