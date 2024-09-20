@@ -1,0 +1,37 @@
+[package]
+name = "train_game"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# Remove dynamic_linking feature for an actual release
+bevy = { version = "0.14.*", features = ["dynamic_linking", "trace"] }
+bevy-inspector-egui = "0.25.*"
+bevy_egui = "0.29.*"
+bevy_fast_tilemap = { git = "https://github.com/Droggelbecher/bevy-fast-tilemap.git"}
+bevy_framepace = "0.17.1"
+bevy_prototype_lyon = "0.12.0"
+bevy_rapier2d = "0.27.*"
+bevy_svg = { version = "0.14.*", default-features = false, features = ["2d"] }
+clap = { version = "4.5.*", features = ["derive"] }
+indexmap = "2.5.*"
+iyes_perf_ui = "0.3.*"
+# improves runtime performance
+log = { version = "*", features = ["max_level_debug", "release_max_level_warn"] }
+rand = "0.8.*"
+# tiled = "0.12.*"
+tiled ={ git = "https://github.com/mapeditor/rs-tiled.git" }
+# tiled = { path = "../rs-tiled"}
+
+[profile.release]
+debug = true
+
+# Enable a small amount of optimization in debug mode
+[profile.dev]
+opt-level = 1
+
+# Enable high optimizations for dependencies (incl. Bevy), but not for our code:
+[profile.dev.package."*"]
+opt-level = 3
