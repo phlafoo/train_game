@@ -10,10 +10,10 @@ cargo run --release -- -m [level filename]
 ```
 Level file is assumed to in `assets/levels/`. For example:
 ```
-cargo run --release -- -m testlevel16x.tmx
+cargo run --release -- -m test.tmx
 ```
 
-You can used the [Tiled](https://www.mapeditor.org/) map editor to edit the existing levels or create your own. You must use the `assets/tilesets/tilemap16x.tsx` tileset.
+You can used the [Tiled](https://www.mapeditor.org/) map editor to edit the existing levels or create your own. You must use the `assets/tilesets/tileset16x.tsx` tileset.
 
 ### Controls
 ###### Keyboard
@@ -25,7 +25,7 @@ C           -  show/hide game config
 X           -  show/hide bevy world inspector
 V           -  toggle V-sync
 N           -  toggle noclip
-R           -  reset level;
+R           -  reset level
 Plus        -  zoom camera in
 Minus       -  zoom camera out
 LControl    -  hold to zoom camera faster
