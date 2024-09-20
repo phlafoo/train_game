@@ -1,0 +1,77 @@
+{
+    "Map/SizeTest": {
+        "height": 4300,
+        "width": 2
+    },
+    "activeFile": "",
+    "expandedProjectPaths": [
+    ],
+    "fileStates": {
+        "levels/old/collision.tmx": {
+            "scale": 1.135546875,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 384.3962848297215,
+                "y": 384.3962848297214
+            }
+        },
+        "levels/old/testlevel16x.tmx": {
+            "scale": 0.22412109375,
+            "selectedLayer": 2,
+            "viewCenter": {
+                "x": 1024,
+                "y": 5427.869281045752
+            }
+        },
+        "levels/test.tmx": {
+            "expandedObjectLayers": [
+                3
+            ],
+            "scale": 2,
+            "selectedLayer": 2,
+            "viewCenter": {
+                "x": 450.25,
+                "y": 601.75
+            }
+        },
+        "levels/test2.tmx": {
+            "expandedObjectLayers": [
+                3
+            ],
+            "scale": 1.5,
+            "selectedLayer": 2,
+            "viewCenter": {
+                "x": 8179,
+                "y": 7476.333333333333
+            }
+        },
+        "levels/tilesets/tilemap16x.tsx": {
+            "scaleInDock": 1
+        },
+        "levels/tilesets/tileset16x-resized.tsx": {
+            "scaleInDock": 1
+        }
+    },
+    "last.imagePath": "C:/Dev/train_game/assets/tilesets",
+    "last.objectTemplatePath": "C:/Dev/train_game/assets/templates",
+    "map.height": 48,
+    "map.lastUsedFormat": "tmx",
+    "map.tileHeight": 16,
+    "map.tileWidth": 16,
+    "map.width": 48,
+    "openFiles": [
+    ],
+    "project": "train.tiled-project",
+    "property.type": "bool",
+    "recentFiles": [
+        "levels/old/collision.tmx",
+        "levels/old/testlevel16x.tmx"
+    ],
+    "tileset.lastUsedFormat": "tsx",
+    "tileset.margin": 1,
+    "tileset.spacing": 1,
+    "tileset.tileSize": {
+        "height": 16,
+        "width": 16
+    }
+}

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template>
+ <object type="SpawnerTrigger" width="111" height="289">
+  <properties>
+   <property name="spawner_id" type="object" value="0"/>
+  </properties>
+  <ellipse/>
+ </object>
+</template>

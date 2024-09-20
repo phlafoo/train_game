@@ -1,0 +1,25 @@
+{
+    "activeFile": "collision.tmx",
+    "expandedProjectPaths": [
+        "tilesets",
+        ".",
+        "levels"
+    ],
+    "openFiles": [
+        "collision.tmx"
+    ],
+    "recentFiles": [
+        "collision.tmx",
+        "biglevel.tmx",
+        "biglevel2.tmx",
+        "biglevel3.tmx",
+        "levels/biglevel.tmx",
+        "testlevel.tmx",
+        "tilemap.tsx",
+        "tilemap16x.tsx",
+        "level2.tmx",
+        "tileset16x-resized.tsx",
+        "tilemap32-debug.tsx",
+        "level1.tmx"
+    ]
+}

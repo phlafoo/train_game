@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+  <defs/>
+  <ellipse style="stroke-width: 2px; stroke: rgb(0, 0, 0); paint-order: fill markers; fill: rgb(255, 110, 0);" cx="0" cy="0" rx="7" ry="7"/>
+  <ellipse style="stroke: rgb(0, 0, 0); paint-order: stroke; stroke-width: 0px;" cx="-2" cy="-2" rx="2.4" ry="2.4"/>
+</svg>
+
+
+
+
+<!-- rgb(3, 221, 255) -->
