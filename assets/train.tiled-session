@@ -3,8 +3,13 @@
         "height": 4300,
         "width": 2
     },
-    "activeFile": "",
+    "activeFile": "levels/test.tmx",
     "expandedProjectPaths": [
+        "levels",
+        "levels/old",
+        "tilesets",
+        ".",
+        "templates"
     ],
     "fileStates": {
         "levels/old/collision.tmx": {
@@ -27,11 +32,11 @@
             "expandedObjectLayers": [
                 3
             ],
-            "scale": 2,
+            "scale": 0.75,
             "selectedLayer": 2,
             "viewCenter": {
-                "x": 450.25,
-                "y": 601.75
+                "x": 384.66666666666663,
+                "y": 384
             }
         },
         "levels/test2.tmx": {
@@ -41,8 +46,16 @@
             "scale": 1.5,
             "selectedLayer": 2,
             "viewCenter": {
-                "x": 8179,
-                "y": 7476.333333333333
+                "x": 8000.333333333333,
+                "y": 8000
+            }
+        },
+        "levels/test3.tmx": {
+            "scale": 1.5115885416666666,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 384.03307778447765,
+                "y": 383.70229993970196
             }
         },
         "levels/tilesets/tilemap16x.tsx": {
@@ -50,6 +63,10 @@
         },
         "levels/tilesets/tileset16x-resized.tsx": {
             "scaleInDock": 1
+        },
+        "tilesets/tileset16x.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 5.5
         }
     },
     "last.imagePath": "C:/Dev/train_game/assets/tilesets",
@@ -60,10 +77,18 @@
     "map.tileWidth": 16,
     "map.width": 48,
     "openFiles": [
+        "tilesets/tileset16x.tsx",
+        "levels/test.tmx",
+        "levels/test2.tmx",
+        "levels/test3.tmx"
     ],
     "project": "train.tiled-project",
     "property.type": "bool",
     "recentFiles": [
+        "tilesets/tileset16x.tsx",
+        "levels/test3.tmx",
+        "levels/test2.tmx",
+        "levels/test.tmx",
         "levels/old/collision.tmx",
         "levels/old/testlevel16x.tmx"
     ],
