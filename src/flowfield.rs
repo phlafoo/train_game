@@ -173,6 +173,7 @@ impl Flowfield {
 
                 if neighbor_cost < min {
                     if (neighbor_wall_mask << 4) & mask != 0 {
+                        // if (neighbor_wall_mask << 4) != 0 {
                         continue;
                     }
                     min = neighbor_cost;
@@ -381,14 +382,14 @@ fn update_cost(
 
     // ((dx, dy), step_cost, wall_mask)
     const NEIGHBORS: [((isize, isize), u32, u8); 8] = [
-        ((0, 1), 10, 0b0000_1000),   // N
-        ((1, 0), 10, 0b0000_0100),   // E
-        ((0, -1), 10, 0b0000_0010),  // S
-        ((-1, 0), 10, 0b0000_0001),  // W
-        ((1, 1), 14, 0b1100_0000),   // NE
-        ((1, -1), 14, 0b0110_0000),  // SE
-        ((-1, -1), 14, 0b0011_0000), // SW
-        ((-1, 1), 14, 0b1001_0000),  // NW
+        ((0, 1), 10, N_BITMASK),    // N
+        ((1, 0), 10, E_BITMASK),    // E
+        ((0, -1), 10, S_BITMASK),   // S
+        ((-1, 0), 10, W_BITMASK),   // W
+        ((1, 1), 14, NE_BITMASK),   // NE
+        ((1, -1), 14, SE_BITMASK),  // SE
+        ((-1, -1), 14, SW_BITMASK), // SW
+        ((-1, 1), 14, NW_BITMASK),  // NW
     ];
 
     for _ in 0..iter_per_update {
@@ -402,7 +403,6 @@ fn update_cost(
         let mut wall_mask = 0;
 
         for &((dx, dy), step_cost, mask) in NEIGHBORS.iter() {
-            // println!("made it part 1");
             let next_x = x + dx;
             let next_y = y + dy;
 
@@ -410,7 +410,6 @@ fn update_cost(
             if next_x < 0 || next_x >= width || next_y < 0 || next_y >= height {
                 continue;
             }
-            // println!("made it part 2");
             // Get index
             let n = (next_x + next_y * width) as usize;
 
@@ -418,27 +417,25 @@ fn update_cost(
             // if flowfield.cost_grid[n].1 {
             //     continue;
             // }
-            // println!("made it part 3");
 
             // If we hit a wall
             if storage.0[n] != 0 {
-                // todo fix alwyays going here
+                // todo fix always going here
                 wall_mask |= mask;
                 flowfield.cost_grid[n].0 = u32::MAX;
                 flowfield.cost_grid[n].1 = true;
+                flowfield.field[n] = None;
                 continue;
             }
             if flowfield.cost_grid[n].1 {
                 continue;
             }
-            // println!("made it part 4");
+            // TODO when wall is cardinally adjacent, don't move diagonally
             // If we want to move diagonally but both adjacent tiles are walls
-            // if step_cost == 14 && (wall_mask << 4) & mask == mask {
             if step_cost == 14 && (wall_mask << 4) & mask != 0 {
-                //
+                // if step_cost == 14 && (wall_mask << 4) != 0 {
                 continue;
             }
-            // println!("made it part 5");
 
             // Update cost and mark visited
             let new_cost = cost + step_cost;
@@ -682,7 +679,7 @@ pub fn apply_force(
     }
 }
 
-// TODO rework. maybe toggle for drawing entire field vs per chaser?
+// TODO rework
 fn draw_flowfield(
     q_ortho: Query<(&OrthographicProjection, &GlobalTransform), With<MainCamera>>,
     mut gizmos: Gizmos,

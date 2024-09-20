@@ -19,7 +19,7 @@ use crate::{
     spawner::{Spawner, SpawnerTrigger},
 };
 
-const EMPTY_TILE_ID: TileId = 82; //5; //47
+const EMPTY_TILE_ID: TileId = 5;
 
 const WALL_LAYER: &str = "wall layer";
 const OBJECT_LAYER: &str = "object layer";
@@ -312,20 +312,20 @@ fn load_tilemap(
                                         }
                                     }
                                     match id {
-                                        // air tile
-                                        EMPTY_TILE_ID => 0,
                                         // triangle wall tiles
-                                        3 => NW_SUBTILE_BITMASK,
-                                        4 => NE_SUBTILE_BITMASK,
-                                        18 => SW_SUBTILE_BITMASK,
-                                        19 => SE_SUBTILE_BITMASK,
+                                        19 => NW_SUBTILE_BITMASK,
+                                        18 => NE_SUBTILE_BITMASK,
+                                        4 => SW_SUBTILE_BITMASK,
+                                        3 => SE_SUBTILE_BITMASK,
                                         // half wall tiles
                                         31 => N_SUBTILE_BITMASK,
                                         15 => E_SUBTILE_BITMASK,
                                         1 => S_SUBTILE_BITMASK,
                                         17 => W_SUBTILE_BITMASK,
                                         // normal wall tile
-                                        _ => WALL_BITMASK,
+                                        16 => WALL_BITMASK,
+                                        // air tile, spawner
+                                        _ => 0,
                                     }
                                 }
                                 None => 0,
@@ -453,11 +453,12 @@ fn load_tilemap(
                 }
                 // process objects
                 for object_data in object_layer.object_data().iter() {
-                    let mut transform = Transform::from_translation(vec3(
+                    let translation = vec3(
                         object_data.x,
                         tilemap.get_physical_height() - object_data.y,
                         0.0,
-                    ));
+                    );
+                    let mut transform = Transform::from_translation(translation);
 
                     match object_data.user_type.as_str() {
                         PLAYER_SPAWN => {
@@ -467,7 +468,10 @@ fn load_tilemap(
                         ENEMY_SPAWNER => {
                             commands.spawn((
                                 Spawner::from_object(object_data),
-                                TransformBundle::from_transform(transform),
+                                TransformBundle::from_transform(
+                                    transform
+                                        .with_translation(translation.with_z(FRONT_LAYER_Z - 2.5)),
+                                ),
                             ));
                         }
                         SPAWNER_TRIGGER => {

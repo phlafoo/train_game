@@ -12,6 +12,14 @@
         "templates"
     ],
     "fileStates": {
+        "levels/level1.tmx": {
+            "scale": 8,
+            "selectedLayer": 2,
+            "viewCenter": {
+                "x": 313.1875,
+                "y": 161.5625
+            }
+        },
         "levels/old/collision.tmx": {
             "scale": 1.135546875,
             "selectedLayer": 0,
@@ -32,11 +40,11 @@
             "expandedObjectLayers": [
                 3
             ],
-            "scale": 0.75,
+            "scale": 1,
             "selectedLayer": 2,
             "viewCenter": {
-                "x": 384.66666666666663,
-                "y": 384
+                "x": 868.5,
+                "y": 439.5
             }
         },
         "levels/test2.tmx": {
@@ -46,16 +54,19 @@
             "scale": 1.5,
             "selectedLayer": 2,
             "viewCenter": {
-                "x": 8000.333333333333,
-                "y": 8000
+                "x": 8000.333333333332,
+                "y": 8000.333333333332
             }
         },
         "levels/test3.tmx": {
+            "expandedObjectLayers": [
+                3
+            ],
             "scale": 1.5115885416666666,
-            "selectedLayer": 0,
+            "selectedLayer": 2,
             "viewCenter": {
-                "x": 384.03307778447765,
-                "y": 383.70229993970196
+                "x": 384.0330777844776,
+                "y": 383.3715220949264
             }
         },
         "levels/tilesets/tilemap16x.tsx": {
