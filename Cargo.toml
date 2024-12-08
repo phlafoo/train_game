@@ -22,7 +22,7 @@ iyes_perf_ui = "0.3.*"
 log = { version = "*", features = ["max_level_debug", "release_max_level_warn"] }
 rand = "0.8.*"
 # tiled = "0.12.*"
-tiled ={ git = "https://github.com/mapeditor/rs-tiled.git" }
+tiled = { git = "https://github.com/mapeditor/rs-tiled.git" }
 # tiled = { path = "../rs-tiled"}
 
 [profile.release]

@@ -93,6 +93,7 @@ fn main() {
             Update,
             (
                 make_visible,
+                update_game_speed,
                 update_framerate_target,
                 toggle_vsync,
                 exit_app,
@@ -115,6 +116,10 @@ fn setup_window(mut q_window: Query<&mut Window>, mut settings: ResMut<Framepace
 
     // maximize window
     q_window.single_mut().set_maximized(true);
+}
+
+fn update_game_speed(config: Res<Config>, mut time: ResMut<Time<Virtual>>) {
+    time.set_relative_speed(config.game_speed);
 }
 
 /// Set framerate target through config.

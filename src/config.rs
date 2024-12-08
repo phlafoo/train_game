@@ -54,6 +54,8 @@ impl Default for DebugViews {
 #[derive(Resource, Reflect, InspectorOptions)]
 #[reflect(Resource, InspectorOptions)]
 pub struct Config {
+    #[inspector(min = 0.0, max = 5.0, speed = 0.01)]
+    pub game_speed: f32,
     /// Smooth out the flowfield at tiles that have a direct sight line to the target
     pub flowfield_smooth: bool,
     /// Chasers in this range can follow player per frame
@@ -87,6 +89,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
+            game_speed: 1.0,
             flowfield_smooth: true,
             flow_cost_threshold: 150,
             seconds_per_iter: 0.4,
@@ -115,7 +118,7 @@ fn ui_config(world: &mut World) {
     let mut egui_context = egui_context.clone();
 
     let title = RichText::new("Config").text_style(egui::TextStyle::Body);
-    egui::Window::new(title).show(egui_context.get_mut(), |ui| {
+    egui::Window::new(title).default_height(1000.0).show(egui_context.get_mut(), |ui| {
         egui::ScrollArea::both().show(ui, |ui| {
             CollapsingHeader::new("Config")
                 .default_open(true)

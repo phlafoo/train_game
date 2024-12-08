@@ -15,7 +15,7 @@ use crate::{
     camera::{CameraRange, MainCamera},
     chaser::Chaser,
     config::Config,
-    gamepad::MyGamepad,
+    gamepad::MyGamepads,
     physics::PLAYER_GROUP,
     spawner::Spawner,
     tilemap::{Args, PlayerSpawn},
@@ -305,7 +305,7 @@ struct PlayerAction {
 /// Get [`PlayerAction`] based on user input
 fn get_player_action(
     keyboard: Res<ButtonInput<KeyCode>>,
-    gamepad: Option<Res<MyGamepad>>,
+    gamepads: Res<MyGamepads>,
     axes: Res<Axis<GamepadAxis>>,
     gamepad_buttons: Res<ButtonInput<GamepadButton>>,
     config: Res<Config>,
@@ -336,7 +336,7 @@ fn get_player_action(
         }
     }
 
-    if let Some(&MyGamepad(gamepad)) = gamepad.as_deref() {
+    for &gamepad in gamepads.0.iter() {
         let axis_lx = GamepadAxis {
             gamepad,
             axis_type: GamepadAxisType::LeftStickX,
@@ -368,6 +368,7 @@ fn get_player_action(
             debug_boost = true;
         }
     }
+
     PlayerAction {
         move_dir,
         boost,
@@ -382,14 +383,14 @@ fn player_movement(
     gamepad_buttons: Res<ButtonInput<GamepadButton>>,
     axes: Res<Axis<GamepadAxis>>,
     time: Res<Time>,
-    gamepad: Option<Res<MyGamepad>>,
+    gamepads: Res<MyGamepads>,
     mut query: Query<(&mut Velocity, &mut Transform, &Player)>,
 ) {
     let Ok((mut velocity, mut transform, player)) = query.get_single_mut() else {
         return;
     };
 
-    let mut action = get_player_action(keyboard, gamepad, axes, gamepad_buttons, config);
+    let mut action = get_player_action(keyboard, gamepads, axes, gamepad_buttons, config);
 
     let v = &mut velocity.linvel;
     let mag_before = v.length();

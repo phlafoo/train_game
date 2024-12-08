@@ -353,8 +353,7 @@ fn update_cost(
 
     let tile_count = flowfield.width * flowfield.height;
     let fps = 1.0 / time.delta_seconds();
-    let iter_per_update = (tile_count as f32 / (fps * config.seconds_per_iter)) as usize;
-    // info!(iter_per_update);
+    let iter_per_update = (tile_count as f32 / (fps * config.seconds_per_iter)).max(1.0) as usize;
 
     if !flowfield.target_changed && flowfield.heap.is_empty() {
         return;

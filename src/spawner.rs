@@ -181,6 +181,9 @@ fn update_spawners(
                     if spawner.repeats {
                         spawner.count = 0;
                         let duration = (spawner.delay - spawner.timer.elapsed_secs()).max(0.0);
+                        if duration.is_sign_negative() {
+                            panic!("duration was negative! Value: {duration}");
+                        }
                         spawner
                             .timer
                             .set_duration(Duration::from_secs_f32(duration));
@@ -189,6 +192,9 @@ fn update_spawners(
                     }
                 } else {
                     let duration = spawner.interval - spawner.timer.elapsed_secs();
+                    if duration.is_sign_negative() {
+                        panic!("duration was negative! Value: {duration}");
+                    }
                     spawner
                         .timer
                         .set_duration(Duration::from_secs_f32(duration));

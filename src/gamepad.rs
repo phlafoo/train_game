@@ -1,21 +1,24 @@
-use bevy::{input::gamepad::{GamepadConnection, GamepadEvent}, prelude::*};
+use bevy::{
+    input::gamepad::{GamepadConnection, GamepadEvent},
+    prelude::*,
+};
 
 /// Handles connection to gamepad
 pub struct GamepadPlugin;
 
 impl Plugin for GamepadPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, gamepad_connections);
+        app.init_resource::<MyGamepads>()
+            .add_systems(Update, gamepad_connections);
     }
 }
 
 /// Stores the ID of the first connected gamepad.
-#[derive(Resource)]
-pub struct MyGamepad(pub Gamepad);
+#[derive(Resource, Default)]
+pub struct MyGamepads(pub Vec<Gamepad>);
 
 fn gamepad_connections(
-    mut commands: Commands,
-    my_gamepad: Option<Res<MyGamepad>>,
+    mut my_gamepads: ResMut<MyGamepads>,
     mut evr_gamepad: EventReader<GamepadEvent>,
 ) {
     for ev in evr_gamepad.read() {
@@ -29,19 +32,16 @@ fn gamepad_connections(
                     "New gamepad connected: {:?}, name: {}",
                     ev_conn.gamepad, info.name,
                 );
-                // if we don't have any gamepad yet, use this one
-                if my_gamepad.is_none() {
-                    commands.insert_resource(MyGamepad(ev_conn.gamepad));
-                }
+                // Add this gamepad to our gamepads resource
+                my_gamepads.0.push(ev_conn.gamepad);
             }
             GamepadConnection::Disconnected => {
                 debug!("Lost connection with gamepad: {:?}", ev_conn.gamepad);
-                // if it's the one we previously used for the player, remove it:
-                if let Some(MyGamepad(old_id)) = my_gamepad.as_deref() {
-                    if *old_id == ev_conn.gamepad {
-                        commands.remove_resource::<MyGamepad>();
-                    }
-                }
+                let Some(index) = my_gamepads.0.iter().position(|g| *g == ev_conn.gamepad) else {
+                    continue;
+                };
+                // Remove gamepad from our gamepads resource
+                my_gamepads.0.remove(index);
             }
         }
     }
