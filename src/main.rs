@@ -119,7 +119,8 @@ fn setup_window(mut q_window: Query<&mut Window>, mut settings: ResMut<Framepace
 }
 
 fn update_game_speed(config: Res<Config>, mut time: ResMut<Time<Virtual>>) {
-    time.set_relative_speed(config.game_speed);
+    let speed = config.game_speed as f32 / 100.0;
+    time.set_relative_speed(speed);
 }
 
 /// Set framerate target through config.

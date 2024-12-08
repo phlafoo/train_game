@@ -94,7 +94,7 @@ fn get_scaling_mode(res: &WindowResolution) -> ScalingMode {
 }
 
 fn camera_zoom(
-    time: Res<Time>,
+    time: Res<Time<Virtual>>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mut q_camera: Query<&mut OrthographicProjection, With<MainCamera>>,
     q_window: Query<&Window>,
@@ -107,21 +107,24 @@ fn camera_zoom(
 
     // Zoom in/out faster when key is pressed
     let scale_inc = if keyboard_input.pressed(KeyCode::ControlLeft) {
-        4.0
+        2.0
     } else {
         0.05
     };
+    // Relative game speed should not impact zoom speed
+    let dt = time.delta_seconds() / time.relative_speed();
+
     // Reset scale
     if keyboard_input.just_pressed(KeyCode::Digit0) {
         ortho.scale = 1.0;
     }
     // Zoom in
     if keyboard_input.pressed(KeyCode::Equal) {
-        ortho.scale -= scale_inc * time.delta_seconds();
+        ortho.scale -= scale_inc * dt;
     }
     // Zoom out
     if keyboard_input.pressed(KeyCode::Minus) {
-        ortho.scale += scale_inc * time.delta_seconds();
+        ortho.scale += scale_inc * dt;
     }
     // Limit zoom
     if ortho.scale < MIN_SCALE {
