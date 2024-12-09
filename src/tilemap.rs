@@ -21,6 +21,7 @@ use crate::{
 
 const EMPTY_TILE_ID: TileId = 5;
 
+const BACKGROUND_LAYER: &str = "background layer";
 const WALL_LAYER: &str = "wall layer";
 const OBJECT_LAYER: &str = "object layer";
 const PLAYER_SPAWN: &str = "PlayerSpawn";
@@ -135,6 +136,9 @@ fn load_tilemap(
     let mut colliders: Vec<Collider> = vec![];
 
     for (layer_index, layer) in map.layers().enumerate() {
+        if ![BACKGROUND_LAYER, WALL_LAYER, OBJECT_LAYER].contains(&layer.name.as_str()) {
+            continue;
+        }
         print!("Layer \"{}\":\n\t", layer.name);
 
         match layer.layer_type() {

@@ -14,8 +14,7 @@ pub struct SpawnPlugin;
 
 impl Plugin for SpawnPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, handle_trigger_event)
-            .add_systems(Update, (update_spawners, remove_chasers).chain())
+        app.add_systems(Update, (update_spawners, remove_chasers, handle_trigger_event).chain())
             .add_event::<SpawnerTriggerEvent>();
     }
 }

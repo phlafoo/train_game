@@ -148,19 +148,28 @@ fn update_chaser_avoidance(
         CHASER_GROUP | WALL_GROUP,
     ));
 
+    let radius_sq = config.chaser_avoidance_radius * config.chaser_avoidance_radius;
+    let avoidance_factor = (config.chaser_avoidance_mul << 16) as f32; // * 65536
+    let max_avoidance = config.chaser_avoidance_max as f32 * 100.0;
+
+    let max_force = config.chaser_max_force;
+
     for (mut ext_force, transform) in query_chasers.iter_mut() {
         let pos = transform.translation.xy();
 
         if let Some((_, projection)) = rapier_context.project_point(pos, false, filter) {
             let avoidance = pos - projection.point;
             let length_sq = avoidance.length_squared();
+            if length_sq > radius_sq {
+                continue;
+            }
 
             let avoidance_magnitude =
-                (length_sq.recip() * config.chaser_avoidance_mul).min(config.chaser_avoidance_max);
+                (length_sq.recip() * avoidance_factor).min(max_avoidance);
 
             // Set length of `avoidance` to `avoidance_magnitude`
             ext_force.force += avoidance_magnitude * (avoidance / length_sq.sqrt());
-            ext_force.force = ext_force.force.clamp_length_max(40000.0);
         }
+        ext_force.force = ext_force.force.clamp_length_max(max_force);
     }
 }

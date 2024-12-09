@@ -4,7 +4,7 @@ use std::{
 };
 
 use bevy::{
-    color::palettes::css::{BLACK, MAROON, TEAL},
+    color::palettes::css::{BLACK, FUCHSIA, GREEN, MAROON, NAVY, OLIVE, SILVER, TEAL},
     math::vec2,
     prelude::*,
 };
@@ -56,6 +56,9 @@ pub const SE_BITMASK: u8 = 0b0110_0000;
 pub const SW_BITMASK: u8 = 0b0011_0000;
 pub const NW_BITMASK: u8 = 0b1001_0000;
 
+// Each tile on the wall layer it turned into a bitmask
+// Empty tiles are 0, wall tiles are 0b1111_1111, and subtiles get a bespoke bitmask that depends on
+// the collision mesh. The bitmask defines which directions are blocked off when moving *from* the tile.
 pub const WALL_BITMASK: u8 = u8::MAX;
 pub const N_SUBTILE_BITMASK: u8 = N_BITMASK | NE_BITMASK | NW_BITMASK;
 pub const E_SUBTILE_BITMASK: u8 = E_BITMASK | NE_BITMASK | SE_BITMASK;
@@ -66,26 +69,20 @@ pub const SE_SUBTILE_BITMASK: u8 = SE_BITMASK | S_BITMASK | E_BITMASK;
 pub const SW_SUBTILE_BITMASK: u8 = SW_BITMASK | S_BITMASK | W_BITMASK;
 pub const NW_SUBTILE_BITMASK: u8 = NW_BITMASK | N_BITMASK | W_BITMASK;
 
-// #[derive(Clone)]
-// struct Node {
-//     cost: u32,
-//     direction: Dir2,
-// }
-
-// impl Default for Node {
-//     fn default() -> Self {
-//         Self { cost: u32::MAX, direction: Dir2::NORTH }
-//     }
-// }
-
 #[derive(Component, Default, Clone, Reflect)]
 pub struct Flowfield {
+    /// Real time position of player.
     target: Vec2,
+    /// Position of player for the current cost calculation. Gets updated right after entire cost
+    /// grid is finished updating.
     transient_target: IVec2,
+    /// Used to determine if cost grid should be recalculated.
     target_changed: bool,
-    /// (cost, visited)
+    /// Stores cost from Dijkstra's algorithm and bool for if the tile has been visited.
     cost_grid: Vec<(u32, bool)>,
+    /// Stores direction at each grid position.
     field: Vec<Option<Dir2>>,
+    /// Used for calculating cost via Dijkstra's algorithm.
     heap: BinaryHeap<Node>,
     /// width in number of tiles
     pub width: isize,
@@ -107,13 +104,19 @@ impl Flowfield {
 
     // TODO cleanup
     #[inline(always)]
-    pub fn get_flow_at_tile(&mut self, tile: Vec2, storage: &TileStorage, smooth: bool) -> Dir2 {
+    pub fn get_flow_at_tile(
+        &mut self,
+        tile: Vec2,
+        storage: &TileStorage,
+        config: &Res<Config>,
+    ) -> Dir2 {
         let i = (tile.x as isize + tile.y as isize * self.width) as usize;
 
         let cost = self.cost_grid[i].0;
-        let line_of_sight = cost == self.get_minimum_cost_at_index(i);
+        let line_of_sight = cost == self.get_minimum_cost_at_tile(tile);
+        // let line_of_sight = cost == self.get_minimum_cost_at_index(i);
 
-        if cost > 150 || !line_of_sight {
+        if cost > config.flow_cost_threshold || !line_of_sight {
             if let Some(f) = self.field[i] {
                 return f;
             }
@@ -140,6 +143,7 @@ impl Flowfield {
             let mut min = u32::MAX;
             // let mut wall_adjacent = false;
             // let mut neighbors_wall = [false; 4];
+            let mut delta = (0, 0);
 
             for &((dx, dy), dir, mask) in Self::NEIGHBORS.iter() {
                 let next_col = col + dx;
@@ -160,6 +164,8 @@ impl Flowfield {
                 // 1001_1001
                 //
 
+                // 0.9238795, 0.38268343
+
                 // maybe try    neighbor_wall_mask |= mask * (storage.tiles[n] != 0) as u8;
                 //
                 // if storage.tiles[n] != 0 {
@@ -178,6 +184,33 @@ impl Flowfield {
                     }
                     min = neighbor_cost;
                     self.field[i] = Some(dir);
+                    delta = (dx, dy);
+                }
+            }
+            if config.sub_diagonal {
+                if let Some(dir) = &mut self.field[i] {
+                    let is_diagonal = dir.x != 0. && dir.y != 0.;
+                    if is_diagonal {
+                        let n1 = i as isize + delta.0 * 2 + delta.1 * self.width;
+                        let n2 = i as isize + delta.0 + 2 * delta.1 * self.width;
+                        let c1 = self.cost_grid[n1 as usize].0;
+                        let c2 = self.cost_grid[n2 as usize].0;
+                        *dir = match c1.cmp(&c2) {
+                            std::cmp::Ordering::Less => {
+                                Dir2::new(dir.as_vec2() + vec2(delta.0 as f32, 0.)).unwrap()
+                            }
+                            std::cmp::Ordering::Greater => {
+                                Dir2::new(dir.as_vec2() + vec2(0., delta.1 as f32)).unwrap()
+                            }
+                            std::cmp::Ordering::Equal => *dir,
+                        };
+                        // if c1 < c2 {
+                        //     *dir = Dir2::new(dir.as_vec2() + vec2(delta.0 as f32, 0.)).unwrap();
+                        //     // println!("dir: {:?}", dir);
+                        // } else if c2 < c1 {
+                        //     *dir = Dir2::new(dir.as_vec2() + vec2(0., delta.1 as f32)).unwrap();
+                        // }
+                    }
                 }
             }
         }
@@ -208,13 +241,15 @@ impl Flowfield {
         //         (col as i32 == flowfield.transient_target.x || row as i32 == flowfield.transient_target.y)
         //     );
         // }
-        if neighbor_wall_mask == 0
+        let is_diagonal = self.field[i].map_or(false, |f| f.x != 0. && f.y != 0.);
+        let is_cardinal_to_target = !config.filter_cardinal
+            || (col as i32 == self.transient_target.x || row as i32 == self.transient_target.y);
+        let wall_adjacent = !config.filter_wall_adjacent || neighbor_wall_mask == 0;
+
+        if wall_adjacent
             && line_of_sight
-            && ((self.field[i].is_some()
-                && self.field[i].unwrap().x != 0.
-                && self.field[i].unwrap().y != 0.)
-                || (col as i32 == self.transient_target.x || row as i32 == self.transient_target.y))
-            && smooth
+            && (is_diagonal || is_cardinal_to_target)
+            && config.flowfield_smooth
         {
             // count_smoothed += 1;
             // if debug {
@@ -224,7 +259,7 @@ impl Flowfield {
             let tile = get_tile_coords(i, self.width);
             // let dir_x = self.target.x - tile.0 as f32 - 0.5;
             // let dir_y = self.target.y - tile.1 as f32 - 0.5;
-            let (dir_x, dir_y) = if cost < 150 {
+            let (dir_x, dir_y) = if cost < config.flow_cost_threshold {
                 (
                     self.target.x - tile.0 as f32 - 0.5,
                     self.target.y - tile.1 as f32 - 0.5,
@@ -236,13 +271,12 @@ impl Flowfield {
                 )
             };
 
-            let Ok(dir) = Dir2::from_xy(dir_x, dir_y) else {
-                panic!();
-            };
+            let dir = Dir2::from_xy(dir_x, dir_y).expect("Failed to make Dir2 from xy");
             self.field[i] = Some(dir);
         }
         self.field[i].unwrap_or(Dir2::Y)
     }
+
     pub fn get_index_at_tile(&self, tile: Vec2) -> Option<usize> {
         if tile.x.is_sign_negative()
             || tile.y.is_sign_negative()
@@ -253,9 +287,20 @@ impl Flowfield {
         }
         Some(self.get_index_at_tile_unchecked(tile))
     }
+
     pub fn get_index_at_tile_unchecked(&self, tile: Vec2) -> usize {
         (tile.x as isize + tile.y as isize * self.width) as usize
     }
+
+    pub fn get_minimum_cost_at_tile(&self, tile: Vec2) -> u32 {
+        let x_diff = (self.transient_target.x - tile.x as i32).unsigned_abs();
+        let y_diff = (self.transient_target.y - tile.y as i32).unsigned_abs();
+        let diag_count = x_diff.min(y_diff);
+        let straight_count = x_diff.max(y_diff) - diag_count;
+        diag_count * 14 + straight_count * 10
+    }
+
+    #[allow(unused)]
     pub fn get_minimum_cost_at_index(&self, index: usize) -> u32 {
         let (x, y) = get_tile_coords(index, self.width);
         let x_diff = (self.transient_target.x - x as i32).unsigned_abs();
@@ -283,12 +328,7 @@ fn setup_flowfield(q_tilemap: Query<&Tilemap>, mut q_flowfield: Query<&mut Flowf
 
     flowfield.cost_grid = vec![(u32::MAX, false); map.width * map.height];
     flowfield.target_changed = true;
-
     flowfield.transient_target = IVec2::ZERO; // q_spawn.single().1.translation().xy().as_ivec2();
-
-    // Turn each tile on the wall layer into a bitmask.
-    // "Air" tiles are 0, wall tiles are 0b1111_1111, and subtiles get a bespoke bitmask that depends on collision mesh.
-    // The bitmask defines which directions are blocked off when moving *from* the tile.
 
     info!("setup flowfield!");
 }
@@ -301,10 +341,10 @@ fn update_target(
     let Ok(player_translation) = q_player_transform.get_single().map(|p| p.translation) else {
         return;
     };
-    let mut flowfield = q_flowfield.single_mut();
     let Ok(map) = q_map.get_single() else {
         return;
     };
+    let mut flowfield = q_flowfield.single_mut();
 
     flowfield.target = map.world_to_tile_coords(&player_translation.xy());
 
@@ -313,6 +353,7 @@ fn update_target(
     }
 }
 
+/// Used for Dijkstra's
 #[derive(PartialEq, Eq, Clone, Reflect)]
 struct Node {
     index: usize,
@@ -337,7 +378,6 @@ impl Ord for Node {
     }
 }
 
-// TODO cleanup
 fn update_cost(
     time: Res<Time>,
     config: Res<Config>,
@@ -345,41 +385,49 @@ fn update_cost(
     q_tile_storage: Query<&TileStorage>,
 ) {
     let mut flowfield = q_flowfield.single_mut();
+
+    // Cost grid has not been setup yet
     if flowfield.cost_grid.is_empty() {
         return;
     }
     // let target_changed = !q_target.is_empty();
     let storage = q_tile_storage.single();
 
+    // It is too expensive to do Dijkstra's for the entire grid every frame so instead we amortize
+    // the calculation across many frames. `config.seconds_per_iter` determines how long it should
+    // take to calculate cost for the entire grid. This is combined with the frametime of the previous
+    // frame to calculate `iter_per_update`, which determines how many steps of the algorithm we will
+    // perform this frame.
     let tile_count = flowfield.width * flowfield.height;
     let fps = 1.0 / time.delta_seconds();
     let iter_per_update = (tile_count as f32 / (fps * config.seconds_per_iter)).max(1.0) as usize;
 
     if !flowfield.target_changed && flowfield.heap.is_empty() {
+        // Player has not moved since the cost grid was fully calculated.
         return;
     }
-    // if target_changed {
-    //     flowfield.heap.clear();
-    // }
 
+    // If the heap is empty, we must initiate Dijkstra's from the player position
     if flowfield.heap.is_empty() {
-        // flowfield.target_changed = false;
         flowfield.transient_target = flowfield.target.as_ivec2();
-        // println!("transient: {}/{}", flowfield.transient_target.x, flowfield.transient_target.y);
         let Some(start_index) = flowfield.get_index_at_tile(flowfield.target) else {
             return;
         };
+        // Mark all tiles not visited
         for (_, visited) in flowfield.cost_grid.iter_mut() {
             *visited = false;
         }
-        // flowfield.cost_grid.fill((u32::MAX, false));
-        flowfield.cost_grid[start_index] = (0_u32, true); // save cost
+        // Init cost grid and heap at player position
+        flowfield.cost_grid[start_index] = (0_u32, true);
         flowfield.heap.push(Node::new(start_index, 0_u32));
     }
     let width = flowfield.width;
     let height = flowfield.height;
 
-    // ((dx, dy), step_cost, wall_mask)
+    /// The order here is important. If there are walls north and/or east, then we don't want to calculate
+    /// cost for the northeast tile. So we need to check all the cardinal directions before the ordinal ones.
+    ///
+    /// ((dx, dy), step_cost, wall_mask)
     const NEIGHBORS: [((isize, isize), u32, u8); 8] = [
         ((0, 1), 10, N_BITMASK),    // N
         ((1, 0), 10, E_BITMASK),    // E
@@ -395,16 +443,20 @@ fn update_cost(
         let Some(Node { index: i, cost }) = flowfield.heap.pop() else {
             break;
         };
+        // Prev flow is invalid since we are recalculating the cost
         flowfield.field[i] = None;
 
+        // Get coords of reference tile
         let x = i as isize % width;
         let y = i as isize / width;
         let mut wall_mask = 0;
 
+        // Calculate cost for 8 neighbors
         for &((dx, dy), step_cost, mask) in NEIGHBORS.iter() {
             let next_x = x + dx;
             let next_y = y + dy;
 
+            // TODO use index only (instead of x/y offset) by adding 1 tile thick padding around grid?
             // Bounds check
             if next_x < 0 || next_x >= width || next_y < 0 || next_y >= height {
                 continue;
@@ -412,27 +464,34 @@ fn update_cost(
             // Get index
             let n = (next_x + next_y * width) as usize;
 
-            // If we have visited this tile before
-            // if flowfield.cost_grid[n].1 {
-            //     continue;
-            // }
-
-            // If we hit a wall
+            // If we hit a wall we need to update the wall mask even if this neighbor has been
+            // visited from another reference tile
             if storage.0[n] != 0 {
-                // todo fix always going here
+                // => hit wall
+                // The wall mask indicates which neighbors are walls
                 wall_mask |= mask;
-                flowfield.cost_grid[n].0 = u32::MAX;
-                flowfield.cost_grid[n].1 = true;
+                flowfield.cost_grid[n].0 = u32::MAX; // Wall cost
+                flowfield.cost_grid[n].1 = true; // Mark visited
+
+                // Wall tiles will not be added to the heap, so the flow gets reset here.
                 flowfield.field[n] = None;
                 continue;
             }
+            // If already visited, skip
             if flowfield.cost_grid[n].1 {
                 continue;
             }
-            // TODO when wall is cardinally adjacent, don't move diagonally
-            // If we want to move diagonally but both adjacent tiles are walls
+            // Since we check cardinal directions (step cost 10) before ordinal (diagonal) ones,
+            // if are are checking a diagonal neighbor, we already know if there are any adjacent
+            // walls (cardinally) blocking the path. Even with only 1 wall cardinally we don't want
+            // to move diagonally along that direction (this helps chasers not smack into outside corners).
+            // Example with north and east tiles w/ wall and northeast tile empty:
+            //   After checking N, E, S, W neighbors, our wall_mask is the combination of N and E masks:
+            //      0000_1000 | 0000_0100 = 0000_1100
+            //   The mask when checking the NE neighbor is 1100_0000 so our condition evaluates like this:
+            //      (0000_1100 << 4) & 1100_0000 = 1100_0000 != 0
+            //   Then we know we can skip this diagonal.
             if step_cost == 14 && (wall_mask << 4) & mask != 0 {
-                // if step_cost == 14 && (wall_mask << 4) != 0 {
                 continue;
             }
 
@@ -445,201 +504,10 @@ fn update_cost(
         }
     }
 
+    // Stops recalculating cost when player stops moving
     if flowfield.heap.is_empty() {
-        // println!("###   CHANGE TO FALSE   ###");
         flowfield.target_changed = false;
-        // flowfield.field.fill(None);
     }
-    // println!(
-    //     "  iter_per_update: {iter_per_update},  min: {},  max: {}",
-    //     flowfield.min_cost, flowfield.max_cost
-    // );
-}
-
-// TODO remove
-#[allow(unused)]
-fn update_flowfield(
-    buttons: Res<ButtonInput<MouseButton>>,
-    cursor: Res<MyWorldCoords>,
-    mut q_map: Query<(&GlobalTransform, &Tilemap)>,
-    config: Res<Config>,
-    mut q_flowfield: Query<&mut Flowfield>,
-    q_tile_storage: Query<&TileStorage>,
-) {
-    let mouse_pressed = false; //buttons.pressed(MouseButton::Left);
-
-    let Ok((map_transform, map)) = q_map.get_single_mut() else {
-        return;
-    };
-
-    let mut flowfield = q_flowfield.single_mut();
-
-    // let pressed_index = world_to_tile_coords(&cursor.0, &map_info, &map_translation)
-    //     .and_then(|t| flowfield.get_index_at_tile(t))
-    //     .unwrap_or(usize::MAX);
-
-    let storage = q_tile_storage.single();
-    let width = flowfield.width;
-    let height = flowfield.height;
-
-    const NEIGHBORS: [((isize, isize), Dir2, u8); 8] = [
-        ((0, 1), Dir2::NORTH, N_BITMASK),         // N
-        ((1, 0), Dir2::EAST, E_BITMASK),          // E
-        ((0, -1), Dir2::SOUTH, S_BITMASK),        // S
-        ((-1, 0), Dir2::WEST, W_BITMASK),         // W
-        ((1, 1), Dir2::NORTH_EAST, NE_BITMASK),   // NE
-        ((1, -1), Dir2::SOUTH_EAST, SE_BITMASK),  // SE
-        ((-1, -1), Dir2::SOUTH_WEST, SW_BITMASK), // SW
-        ((-1, 1), Dir2::NORTH_WEST, NW_BITMASK),  // NW
-    ];
-
-    // let mut count_updated = 0;
-    // let mut count_neighbor_check = 0;
-    // let mut count_smoothed = 0;
-
-    for i in 0..flowfield.cost_grid.len() {
-        // let debug = mouse_pressed && pressed_index == i;
-
-        let cost = flowfield.cost_grid[i].0;
-        let line_of_sight = cost == flowfield.get_minimum_cost_at_index(i);
-
-        // if debug {
-        //     println!("heap len: {}", flowfield.heap.len());
-        //     println!("!flowfield.cost_grid[i].1 == {}", !flowfield.cost_grid[i].1);
-        //     println!(
-        //         "(cost < flowfield.min_cost || cost > flowfield.max_cost) == {}",
-        //         (cost < flowfield.min_cost || cost > flowfield.max_cost)
-        //     );
-        //     println!(
-        //         "cost > config.flow_cost_threshold == {}",
-        //         cost > config.flow_cost_threshold
-        //     );
-        // }
-
-        // count_updated += 1;
-
-        let col = i as isize % width;
-        let row = i as isize / width;
-        let mut neighbor_wall_mask = 0_u8;
-
-        // if debug {
-        //     println!("  flowfield.target_changed == {}", flowfield.target_changed);
-        //     println!(
-        //         "  [0., 1., FRAC_1_SQRT_2].contains(&flowfield.field[i].x.abs() == {}",
-        //         [0., 1., FRAC_1_SQRT_2].contains(&flowfield.field[i].x.abs())
-        //     );
-        // }
-
-        // if not smoothed or target has changed
-        if
-        // !line_of_sight
-        //     ||
-        flowfield.field[i].is_none()
-            || flowfield.target_changed
-            || [0., 1., FRAC_1_SQRT_2].contains(&flowfield.field[i].unwrap().x.abs())
-        {
-            // count_neighbor_check += 1;
-            // if debug {
-            //     println!("    checking neighbors...");
-            // }
-            let subtile_mask = storage.0[i];
-
-            let mut min = u32::MAX;
-            // let mut wall_adjacent = false;
-            // let mut neighbors_wall = [false; 4];
-
-            for &((dx, dy), dir, mask) in NEIGHBORS.iter() {
-                let next_col = col + dx;
-                let next_row = row + dy;
-                if next_col < 0
-                    || next_col >= width
-                    || next_row < 0
-                    || next_row >= height
-                    || subtile_mask & mask == mask
-                {
-                    continue;
-                }
-                let n = (next_col + next_row * width) as usize;
-                // TODO use tile storage for wall check, can maybe check for subtiles also
-                // 0110_0110
-                // 0000_0010
-
-                // 1001_1001
-                //
-
-                // maybe try    neighbor_wall_mask |= mask * (storage.tiles[n] != 0) as u8;
-                //
-                // if storage.tiles[n] != 0 {
-                let neighbor_cost = flowfield.cost_grid[n].0;
-                // neighbor_wall_mask |= mask * (neighbor_cost == u32::MAX) as u8;
-                if neighbor_cost == u32::MAX {
-                    // wall_adjacent = true;
-                    neighbor_wall_mask |= mask;
-                    continue;
-                }
-
-                if neighbor_cost < min {
-                    if (neighbor_wall_mask << 4) & mask != 0 {
-                        continue;
-                    }
-                    min = neighbor_cost;
-                    flowfield.field[i] = Some(dir);
-                }
-            }
-        }
-
-        /*
-        For tiles that have a direct line of sight to the target we set the flow to point directly
-        at the target. To check for direct line of sight we compare actual cost the the theoretical
-        cost assuming no obstacles between the tile and target.
-        For tiles not lying directly on a cardinal/ordinal direction relative to the target this
-        method can be optimistic which leads to smoothing in cases where there actually is an
-        obstruction.
-        To mitigate this I only smooth the flow if:
-         - there are no adjacent walls, and
-         - the pre-smoothed direction is not cardinal (except for tiles that are directly cardinal from target)
-         */
-        // if debug {
-        //     println!(" neighbor_wall_mask == 0 == {}", neighbor_wall_mask == 0);
-        //     println!(
-        //         " cost == flowfield.get_minimum_cost_at_index(i) == {}",
-        //         cost == flowfield.get_minimum_cost_at_index(i)
-        //     );
-        //     println!(
-        //         " (flowfield.field[i].x != 0. && flowfield.field[i].y != 0.) == {}",
-        //         (flowfield.field[i].x != 0. && flowfield.field[i].y != 0.)
-        //     );
-        //     println!(
-        //         " (col as i32 == flowfield.transient_target.x || row as i32 == flowfield.transient_target.y) == {}",
-        //         (col as i32 == flowfield.transient_target.x || row as i32 == flowfield.transient_target.y)
-        //     );
-        // }
-        if neighbor_wall_mask == 0
-            && line_of_sight
-            && ((flowfield.field[i].unwrap().x != 0. && flowfield.field[i].unwrap().y != 0.)
-                || (col as i32 == flowfield.transient_target.x
-                    || row as i32 == flowfield.transient_target.y))
-            && config.flowfield_smooth
-        {
-            // count_smoothed += 1;
-            // if debug {
-            //     println!("  smoothing...");
-            // }
-            // no obstacles, set flow to point directly at target
-            let tile = get_tile_coords(i, width);
-            let dir_x = flowfield.target.x - tile.0 as f32 - 0.5;
-            let dir_y = flowfield.target.y - tile.1 as f32 - 0.5;
-
-            let Ok(dir) = Dir2::from_xy(dir_x, dir_y) else {
-                continue;
-            };
-            flowfield.field[i] = Some(dir);
-        }
-    }
-    // println!("{count_updated}");
-    // if mouse_pressed {
-    //     println!("flow updated: {count_updated},  neighbored: {count_neighbor_check},  smoothed: {count_smoothed}\n");
-    // }
 }
 
 pub fn apply_force(
@@ -661,10 +529,9 @@ pub fn apply_force(
         // let world_coords = tile_to_world_coords((tile_x, tile_y), &map_info, &translation);
         let tile_coords = map.world_to_tile_coords(&translation.xy());
 
-        let new_dir = flowfield.get_flow_at_tile(tile_coords, storage, config.flowfield_smooth);
+        let new_dir = flowfield.get_flow_at_tile(tile_coords, storage, &config);
 
-        // TODO define force constant in config
-        force.force = new_dir * 40000.0;
+        force.force = new_dir * config.flowfield_force;
 
         // Update rotation to face the direction of travel
         let mut new_angle = new_dir.to_angle();
@@ -717,11 +584,7 @@ fn draw_flowfield(
         let tile = get_tile_coords(i, width);
 
         let dir = if debug_views.compute_full_flow {
-            flowfield.get_flow_at_tile(
-                vec2(tile.0 as f32, tile.1 as f32),
-                storage,
-                config.flowfield_smooth,
-            )
+            flowfield.get_flow_at_tile(vec2(tile.0 as f32, tile.1 as f32), storage, &config)
         } else {
             let Some(dir) = flowfield.field[i] else {
                 continue;
@@ -736,10 +599,14 @@ fn draw_flowfield(
             .contains(world_coords - transform.translation().xy())
         {
             let cost = flowfield.cost_grid[i].0;
+            const SIN_5_FRAC_PI_8: f32 = 0.9238795;
+            const SIN_FRAC_PI_8: f32 = 0.38268343;
 
             // [0., 1., FRAC_1_SQRT_2].contains(&flowfield.field[i].x.abs())
             let color = if [0., 1., FRAC_1_SQRT_2].contains(&dir.x.abs()) {
                 BLACK.with_alpha(0.8)
+            } else if [SIN_FRAC_PI_8, SIN_5_FRAC_PI_8].contains(&dir.x.abs()) {
+                Srgba::rgb(0.3, 0.4, 0.0).with_alpha(0.99)
             } else if !flowfield.cost_grid[i].1 || cost > config.flow_cost_threshold {
                 TEAL.with_alpha(0.9)
             } else {

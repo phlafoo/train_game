@@ -58,6 +58,9 @@ pub struct Config {
     pub game_speed: i32,
     /// Smooth out the flowfield at tiles that have a direct sight line to the target
     pub flowfield_smooth: bool,
+    pub sub_diagonal: bool,
+    pub filter_cardinal: bool,
+    pub filter_wall_adjacent: bool,
     /// Chasers in this range can follow player per frame
     #[inspector(min = 0, max = 2000)]
     pub flow_cost_threshold: u32,
@@ -66,12 +69,16 @@ pub struct Config {
     pub seconds_per_iter: f32,
 
     pub max_chasers: usize,
+    #[inspector(min = 0.0, max = 1_000_000.0)]
+    pub flowfield_force: f32,
+    #[inspector(min = 0.0, max = 1_000_000.0)]
+    pub chaser_max_force: f32,
     #[inspector(min = 0.0, max = 200.0)]
-    pub chaser_detection_radius: f32,
-    #[inspector(min = 0.0, max = 1_000_000_000.0)]
-    pub chaser_avoidance_mul: f32,
-    #[inspector(min = 0.0, max = 1_000_000_000.0)]
-    pub chaser_avoidance_max: f32,
+    pub chaser_avoidance_radius: f32,
+    #[inspector(min = 0, max = 1_000_000)]
+    pub chaser_avoidance_mul: i32,
+    #[inspector(min = 0, max = 10_000_000)]
+    pub chaser_avoidance_max: i32,
     #[inspector(min = 0.0, max = 10.0, speed = 0.01)]
     pub chaser_rng_force: f32,
 
@@ -91,12 +98,17 @@ impl Default for Config {
         Self {
             game_speed: 100,
             flowfield_smooth: true,
+            sub_diagonal: true,
+            filter_cardinal: true,
+            filter_wall_adjacent: true,
             flow_cost_threshold: 150,
             seconds_per_iter: 0.4,
             max_chasers: 5000,
-            chaser_detection_radius: 35.0,
-            chaser_avoidance_mul: 3_200_000.0,
-            chaser_avoidance_max: 30_000.0,
+            flowfield_force: 40_000.0,
+            chaser_max_force: 40_000.0,
+            chaser_avoidance_radius: 35.0,
+            chaser_avoidance_mul: 49,
+            chaser_avoidance_max: 300,
             chaser_rng_force: 0.4,
             stick_deadzone: 0.07460,
             camera_follow_dist: 125.0,

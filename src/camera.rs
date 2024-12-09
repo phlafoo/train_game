@@ -5,7 +5,11 @@ use bevy::{
 };
 use bevy_rapier2d::plugin::PhysicsSet;
 
-use crate::{config::Config, player::Player, tilemap::Tilemap};
+use crate::{
+    config::Config,
+    player::Player,
+    tilemap::Tilemap,
+};
 
 /// Plugin that spawns the camera, allows zooming in/out, and has the camera follow the player
 pub struct CameraPlugin;
@@ -74,8 +78,13 @@ fn update_range(
 #[derive(Component)]
 pub struct MainCamera;
 
-fn spawn_camera(mut commands: Commands, q_window: Query<&Window>) {
+fn spawn_camera(
+    mut commands: Commands,
+    q_window: Query<&Window>,
+    // q_player_spawn: Query<&GlobalTransform, With<PlayerSpawn>>,
+) {
     let mut camera = Camera2dBundle::default();
+    camera.projection.scale = 0.7;
 
     let res = &q_window.single().resolution;
     camera.projection.scaling_mode = get_scaling_mode(res);
@@ -87,6 +96,7 @@ fn get_scaling_mode(res: &WindowResolution) -> ScalingMode {
     /// Having a physical screen height that matches this number will result in perfect pixel mapping with the tilemap texture.
     /// Larger values zoom the camera out. 1361 is the height in pixels of a maximized window on my monitor (1.0 window scale).
     const SCREEN_HEIGHT_WORLD_UNITS: f32 = 1361.;
+    // const SCREEN_HEIGHT_WORLD_UNITS: f32 = 1000.;
 
     // For some reason I could not get ScalingMode::FixedVertical to have perfect pixel mapping with tilemap texture
     let pixels_per_world_unit = res.physical_height() as f32 / SCREEN_HEIGHT_WORLD_UNITS;
@@ -107,9 +117,9 @@ fn camera_zoom(
 
     // Zoom in/out faster when key is pressed
     let scale_inc = if keyboard_input.pressed(KeyCode::ControlLeft) {
-        2.0
+        1.5
     } else {
-        0.05
+        0.1
     };
     // Relative game speed should not impact zoom speed
     let dt = time.delta_seconds() / time.relative_speed();
@@ -164,8 +174,13 @@ fn camera_follow_player(
     // Prevents camera movement if player is within `MIN_DIFF` distance of camera
     diff = (diff.abs() - MIN_DIFF).max(Vec2::ZERO).copysign(diff);
 
-    // Stay closer to player (in world units) if zoomed in
-    let max_follow_dist = (config.camera_follow_dist * ortho.scale).max(MIN_FOLLOW_DIST);
+    let max_follow_dist = if time.elapsed_seconds() < 0.2 {
+        // Camera should move to player pos quickly when program starts
+        MIN_FOLLOW_DIST
+    } else {
+        // Stay closer to player (in world units) if zoomed in
+        (config.camera_follow_dist * ortho.scale).max(MIN_FOLLOW_DIST)
+    };
 
     // Scale such that the player will not exceed `max_follow_dist` distance from the center of
     // the screen while moving at `boost_max_speed`

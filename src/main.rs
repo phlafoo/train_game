@@ -40,6 +40,8 @@ use spawner::SpawnPlugin;
 use tilemap::MyTilemapPlugin;
 
 const BACKGROUND_COLOR: Color = Color::srgb(0.05, 0.065, 0.08);
+// const WINDOW_WIDTH: f32 = 1920.;
+// const WINDOW_HEIGHT: f32 = 1080.;
 const WINDOW_WIDTH: f32 = 3440.;
 const WINDOW_HEIGHT: f32 = 1361.;
 
@@ -62,6 +64,7 @@ fn main() {
                         prevent_default_event_handling: false,
                         window_theme: Some(WindowTheme::Dark),
                         visible: false,
+                        // position: WindowPosition::Centered(MonitorSelection::Current),
                         ..default()
                     }),
                     ..default()
